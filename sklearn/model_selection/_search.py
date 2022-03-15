@@ -799,6 +799,7 @@ class BaseSearchCV(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta):
             return_parameters=False,
             error_score=self.error_score,
             verbose=self.verbose,
+            return_estimator=True
         )
         results = {}
         with parallel:
@@ -924,9 +925,9 @@ class BaseSearchCV(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta):
 
         return self
 
-    def _format_results(self, candidate_params, n_splits, out, more_results=None):
+    def _format_results(self, candidate_params, n_splits, OUT, more_results=None):
         n_candidates = len(candidate_params)
-        out = _aggregate_score_dicts(out)
+        out = _aggregate_score_dicts(OUT)
 
         results = dict(more_results or {})
         for key, val in results.items():
@@ -970,6 +971,8 @@ class BaseSearchCV(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta):
                 )
 
         _store("fit_time", out["fit_time"])
+        if hasattr(OUT[0]['estimator'], 'support_vectors_'):
+            _store('support_vectors_', [o['estimator'].support_vectors_.shape[0] for o in OUT])
         _store("score_time", out["score_time"])
         # Use one MaskedArray and mask all the places where the param is not
         # applicable for that candidate. Use defaultdict as each candidate may
@@ -994,6 +997,8 @@ class BaseSearchCV(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta):
         results.update(param_results)
         # Store a list of param dicts at the key 'params'
         results["params"] = candidate_params
+
+
 
         test_scores_dict = _normalize_score_results(out["test_scores"])
         if self.return_train_score:
